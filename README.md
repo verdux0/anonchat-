@@ -211,14 +211,13 @@ Obtiene todos los mensajes de una conversación autenticada.
 ## 🖼️ Capturas de Pantalla
 
 ### Interfaz Principal
-![Pantalla Principal](['WhatsApp Image 2025-12-04 at 18.13.02(1).jpeg'])
+<img width="891" height="511" alt="imagen" src="https://github.com/user-attachments/assets/2dc35a6f-0257-4984-830b-130c5f0d28cf" />
 
 ### Flujo de Creación de Conversación
-![Creación de Conversación](['WhatsApp Image 2025-12-04 at 18.13.02 (copia 1).jpeg'])
+![ciclo](https://github.com/user-attachments/assets/d213106c-3efc-4f7d-863e-b5f55af3fe0d)
 
 ### Máquina de Estados
-![Diagrama de Estados](docs/img/maquinaEstados.jpg)
-
+<img src="docs/img/maquinaEstados.jpg" alt="Diagrama de Estados" width="400">
 ## 📁 Estructura del Proyecto
 
 El proyecto está organizado de la siguiente manera para su publicación en GitHub:
@@ -226,15 +225,18 @@ El proyecto está organizado de la siguiente manera para su publicación en GitH
 ```
 complaint/
 ├── docs/
-│   ├── [imágenes del README]
-│   └── scripts/
-│       ├── DB/
-│       │   ├── create_DB.sql
-│       │   ├── seed.sql
-│       │   ├── cleanup.sql
-│       │   ├── drop.sql
-│       │   └── view.sql
-│       └── install.sh
+│   ├── ciclo.pdf
+│   ├── maquinaEstados.pdf
+│   ├── proyectov1.pdf
+│   └── img/
+├── scripts/
+│   ├── DB/
+│   │   ├── create_DB.sql
+│   │   ├── seed.sql
+│   │   ├── cleanup.sql
+│   │   ├── drop.sql
+│   │   └── view.sql
+│   └── install.sh
 ├── anonchat/
 │   ├── api/
 │   │   ├── api.php
@@ -298,8 +300,6 @@ complaint/
 - [ ] Soporte para múltiples administradores por conversación
 - [ ] Sistema de etiquetas y categorización de conversaciones
 - [ ] Exportación de conversaciones en formato PDF
-- [ ] Integración con sistemas de autenticación empresarial (LDAP/Active Directory)
-- [ ] API para integración con otros sistemas de RRHH
 
 ## 📝 Notas de Desarrollo
 
@@ -308,15 +308,4 @@ complaint/
 - El sistema está preparado para escalabilidad futura con índices optimizados
 - La arquitectura permite fácil expansión para múltiples usuarios por conversación
 
-## 📄 Licencia
-
-[Especificar licencia del proyecto]
-
-## 👥 Contribuidores
-
-[Información de los desarrolladores]
-
 ---
-
-**AnonChat** - Fomentando la comunicación transparente y segura en el entorno laboral.
-
