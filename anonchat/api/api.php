@@ -2,12 +2,13 @@
 require_once __DIR__ . '/headers.php';
 require_once __DIR__ . '/db.php';
 
+// Iniciar sesión para API
+session_start();
+
 $pdo = get_pdo();
 function str_len($s) {
     return function_exists('mb_strlen') ? mb_strlen($s) : strlen($s);
 }
-
-
 
 function json_response($status, $data = null, $code = 200) {
     http_response_code($code);
@@ -17,6 +18,40 @@ function json_response($status, $data = null, $code = 200) {
         'error'   => $status ? null : $data,
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
+}
+
+/**
+ * Verifica autenticación por sesión o por credenciales (code + password)
+ * Retorna array con datos de la conversación o false si falla
+ */
+function verify_conversation_auth(PDO $pdo, ?string $code = null, ?string $password = null): array|false {
+    // Primero intentar autenticación por sesión
+    if (isset($_SESSION['conversation_code']) && isset($_SESSION['conversation_id'])) {
+        $sessionCode = $_SESSION['conversation_code'];
+        $stmt = $pdo->prepare('SELECT ID, Code, Status FROM Conversation WHERE Code = ? AND ID = ?');
+        $stmt->execute([$sessionCode, $_SESSION['conversation_id']]);
+        $conv = $stmt->fetch();
+        if ($conv) {
+            return $conv;
+        }
+    }
+    
+    // Si no hay sesión válida, verificar credenciales
+    if ($code !== null && $code !== '' && $password !== null && $password !== '') {
+        $stmt = $pdo->prepare('SELECT ID, Code, Password_Hash, Status FROM Conversation WHERE Code = ?');
+        $stmt->execute([$code]);
+        $conv = $stmt->fetch();
+        if ($conv && password_verify($password, $conv['Password_Hash'])) {
+            // Rehash si es necesario
+            if (password_needs_rehash($conv['Password_Hash'], PASSWORD_DEFAULT)) {
+                $newHash = password_hash($password, PASSWORD_DEFAULT);
+                $pdo->prepare('UPDATE Conversation SET Password_Hash = ? WHERE ID = ?')->execute([$newHash, $conv['ID']]);
+            }
+            return $conv;
+        }
+    }
+    
+    return false;
 }
 
 function base36_from_int(int $ref, array $digits): string {
@@ -81,10 +116,19 @@ try {
 
             $insert = $pdo->prepare('INSERT INTO Conversation (Code, Password_Hash, Status, Description) VALUES (?, ?, ?, ?)');
             $insert->execute([$code, $hash, 'active', $description]);
+            
+            // Obtener el ID de la conversación recién creada
+            $conversationId = $pdo->lastInsertId();
+            
+            // Guardar en sesión para permitir reconexión
+            $_SESSION['conversation_code'] = $code;
+            $_SESSION['conversation_id'] = $conversationId;
+            $_SESSION['authenticated'] = true;
 
             json_response(true, [
                 'message' => 'Conversación creada',
                 'code'    => $code,
+                'conversation_id' => $conversationId,
             ], 201);
             break;
 
@@ -133,6 +177,11 @@ try {
             $pdo->prepare('UPDATE Conversation SET Status = ?, Updated_At = NOW() WHERE ID = ?')
                 ->execute(['active', $row['ID']]);
 
+            // Guardar en sesión para permitir reconexión
+            $_SESSION['conversation_code'] = $code;
+            $_SESSION['conversation_id'] = $row['ID'];
+            $_SESSION['authenticated'] = true;
+
             json_response(true, [
                 'message'         => 'Acceso concedido',
                 'conversation_id' => $row['ID'],
@@ -141,26 +190,17 @@ try {
             break;
 
         case 'get_messages':
-            // Cambiado a POST para no enviar credenciales en query string
+            // Acepta autenticación por sesión o por credenciales
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 json_response(false, 'Método no permitido', 405);
             }
             $code     = trim($_POST['code'] ?? '');
             $password = $_POST['password'] ?? '';
-            if ($code === '' || $password === '') {
-                json_response(false, 'Código y contraseña son requeridos', 422);
-            }
-
-            $stmt = $pdo->prepare('SELECT ID, Password_Hash FROM Conversation WHERE Code = ?');
-            $stmt->execute([$code]);
-            $conv = $stmt->fetch();
-            if (!$conv || !password_verify($password, $conv['Password_Hash'])) {
-                json_response(false, 'Credenciales inválidas', 401);
-            }
-
-            if (password_needs_rehash($conv['Password_Hash'], PASSWORD_DEFAULT)) {
-                $newHash = password_hash($password, PASSWORD_DEFAULT);
-                $pdo->prepare('UPDATE Conversation SET Password_Hash = ? WHERE ID = ?')->execute([$newHash, $conv['ID']]);
+            
+            // Verificar autenticación (por sesión o por credenciales)
+            $conv = verify_conversation_auth($pdo, $code !== '' ? $code : null, $password !== '' ? $password : null);
+            if (!$conv) {
+                json_response(false, 'No autorizado. Requiere sesión activa o credenciales válidas', 401);
             }
 
             $msgStmt = $pdo->prepare('SELECT ID, Sender, Content, File_Path, Created_At FROM Messages WHERE Conversation_ID = ? ORDER BY Created_At ASC');

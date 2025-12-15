@@ -8,6 +8,12 @@ ini_set('session.gc_maxlifetime', 1800);     // 30 minutos
 
 session_start();
 
+// Si hay sesión activa con conversación, redirigir a welcome.php
+if (isset($_SESSION['authenticated']) && isset($_SESSION['conversation_code']) && isset($_SESSION['conversation_id'])) {
+    header('Location: welcome.php');
+    exit;
+}
+
 // CSRF token para peticiones POST
 if (empty($_SESSION['csrf'])) {
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
@@ -154,6 +160,10 @@ $csrf = $_SESSION['csrf'];
       newCodeBox.textContent = data.data.code;
       formNew2.classList.add('hidden');
       newResult.classList.remove('hidden');
+      // Redirigir después de 2 segundos para mostrar el código
+      setTimeout(() => {
+        window.location.href = 'welcome.php';
+      }, 2000);
     });
 
     formCont1.addEventListener('submit', async (e) => {
@@ -186,7 +196,10 @@ $csrf = $_SESSION['csrf'];
       if (!data.success) return alert(data.error || 'Error');
       formCont2.classList.add('hidden');
       contResult.classList.remove('hidden');
-      // Aquí podrías redirigir o cargar la interfaz de chat
+      // Redirigir a welcome.php después de login exitoso
+      setTimeout(() => {
+        window.location.href = 'welcome.php';
+      }, 1000);
     });
 
     function hideAll() {
