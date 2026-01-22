@@ -17,12 +17,14 @@ $adminUser = htmlspecialchars(get_admin_user() ?? 'admin', ENT_QUOTES | ENT_SUBS
 ?>
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Admin Panel - AnonChat</title>
   <link rel="stylesheet" href="static/css/admin_panel.css">
 </head>
+
 <body data-csrf="<?php echo htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8'); ?>">
   <div class="admin-root">
     <!-- LEFT -->
@@ -35,7 +37,8 @@ $adminUser = htmlspecialchars(get_admin_user() ?? 'admin', ENT_QUOTES | ENT_SUBS
       <nav class="table-list" aria-label="Tablas">
         <div class="table-list__title">Tablas</div>
         <?php foreach ($tables as $t): ?>
-          <button class="table-list__item" type="button" data-table="<?php echo htmlspecialchars($t, ENT_QUOTES, 'UTF-8'); ?>">
+          <button class="table-list__item" type="button"
+            data-table="<?php echo htmlspecialchars($t, ENT_QUOTES, 'UTF-8'); ?>">
             <?php echo htmlspecialchars($t, ENT_QUOTES, 'UTF-8'); ?>
           </button>
         <?php endforeach; ?>
@@ -65,6 +68,15 @@ $adminUser = htmlspecialchars(get_admin_user() ?? 'admin', ENT_QUOTES | ENT_SUBS
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input id="searchInput" type="search" placeholder="Buscar..." autocomplete="off">
             <button class="pill" id="fieldsToggle" type="button" aria-expanded="false">Campos</button>
+
+            <!-- [NEW] Filter by Sender (only visible for Messages table theoretically, but we can show it generic or toggle it) -->
+            <select id="senderFilter" class="pill"
+              style="border:none; background:transparent; outline:none; font-size:13px; color:#5f6368; cursor:pointer; margin-left:8px;">
+              <option value="">Todo</option>
+              <option value="admin">Admin</option>
+              <option value="anonymous">Anónimo</option>
+              <option value="user">Usuario</option>
+            </select>
           </div>
 
           <button class="btn" id="exportBtn" type="button">Exportar CSV</button>
@@ -237,7 +249,7 @@ $adminUser = htmlspecialchars(get_admin_user() ?? 'admin', ENT_QUOTES | ENT_SUBS
     }
 
     function escapeHtml(s) {
-      return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
     async function postJSON(url, payload) {
@@ -285,6 +297,8 @@ $adminUser = htmlspecialchars(get_admin_user() ?? 'admin', ENT_QUOTES | ENT_SUBS
       await loadTable();
     }
 
+    const senderFilter = document.getElementById('senderFilter');
+
     async function loadTable() {
       if (!currentTable) return;
 
@@ -295,7 +309,8 @@ $adminUser = htmlspecialchars(get_admin_user() ?? 'admin', ENT_QUOTES | ENT_SUBS
         page: currentPage,
         pageSize,
         q,
-        fields: selectedFields
+        fields: selectedFields, // Eliminado por petición (Restored)
+        sender: senderFilter ? senderFilter.value : '' // [NEW]
       });
 
       columns = data.columns;
@@ -320,6 +335,13 @@ $adminUser = htmlspecialchars(get_admin_user() ?? 'admin', ENT_QUOTES | ENT_SUBS
       thCheck.className = 'col-check';
       thCheck.innerHTML = ''; // checkbox "select all" lives in bulk toolbar
       trh.appendChild(thCheck);
+
+      // [NEW] Header for chat button
+      if (currentTable === 'Conversation') {
+        const thChat = document.createElement('th');
+        thChat.style.width = '40px';
+        trh.appendChild(thChat);
+      }
 
       columns.forEach(col => {
         const th = document.createElement('th');
@@ -355,6 +377,25 @@ $adminUser = htmlspecialchars(get_admin_user() ?? 'admin', ENT_QUOTES | ENT_SUBS
         tdC.appendChild(cb);
         tr.appendChild(tdC);
 
+        // [NEW] Chat button in row
+        if (currentTable === 'Conversation') {
+          const tdChat = document.createElement('td');
+          tdChat.style.width = '40px';
+          tdChat.style.textAlign = 'center';
+
+          const link = document.createElement('a');
+          link.href = 'chat.php?conversation_id=' + row[idColumn];
+          link.target = '_blank';
+          link.textContent = '💬';
+          link.style.textDecoration = 'none';
+          link.title = 'Abrir Chat';
+          // Important: prevent row click (which opens detail view)
+          link.addEventListener('click', (e) => e.stopPropagation());
+
+          tdChat.appendChild(link);
+          tr.appendChild(tdChat);
+        }
+
         // Cells
         columns.forEach(col => {
           const td = document.createElement('td');
@@ -376,8 +417,20 @@ $adminUser = htmlspecialchars(get_admin_user() ?? 'admin', ENT_QUOTES | ENT_SUBS
     }
 
     // Pagination
-    prevPage.addEventListener('click', async () => { currentPage = Math.max(1, currentPage - 1); await loadTable(); });
-    nextPage.addEventListener('click', async () => { currentPage = currentPage + 1; await loadTable(); });
+    prevPage.addEventListener('click', async () => {
+      if (currentPage > 1) {
+        currentPage--;
+        await loadTable();
+      }
+    });
+
+    nextPage.addEventListener('click', async () => {
+      // Nota: idealmente deberíamos saber totalPages aquí para no pasarnos, 
+      // pero loadTable/API manejarán el límite inferior/superior si es necesario.
+      // La UI se deshabilita en loadTable según data.totalPages.
+      currentPage++;
+      await loadTable();
+    });
 
     // Select all (visible page)
     selectAll.addEventListener('change', () => {
@@ -394,6 +447,12 @@ $adminUser = htmlspecialchars(get_admin_user() ?? 'admin', ENT_QUOTES | ENT_SUBS
       q = searchInput.value.trim();
       clearTimeout(searchTimer);
       searchTimer = setTimeout(() => { if (currentTable) loadTable(); }, 250);
+    });
+
+    // [NEW] Actualizar al cambiar filtro de remitente
+    senderFilter.addEventListener('change', () => {
+      currentPage = 1;
+      loadTable();
     });
 
     refreshBtn.addEventListener('click', () => loadTable());
@@ -509,6 +568,59 @@ $adminUser = htmlspecialchars(get_admin_user() ?? 'admin', ENT_QUOTES | ENT_SUBS
         recordForm.appendChild(wrap);
       });
 
+      // [NEW] Open Chat & Delete button if this is a Conversation
+      if (currentTable === 'Conversation') {
+        const wrap = document.createElement('div');
+        // wrap.className = 'form-row'; // Optional: reuse similar spacing
+        wrap.style.marginTop = '16px';
+        wrap.style.display = 'flex';
+        wrap.style.justifyContent = 'flex-end';
+        wrap.style.gap = '10px';
+
+        // Botón Borrar
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn btn--danger';
+        delBtn.textContent = '🗑 Borrar conversación';
+        delBtn.onclick = () => {
+          openConfirm({
+            title: 'Borrar conversación',
+            body: `¿Estás seguro de que quieres borrar la conversación ID ${record[idColumn]} permanentemente?`,
+            okText: 'Borrar para siempre',
+            onOk: async () => {
+              try {
+                await postJSON(api, {
+                  csrf,
+                  action: 'delete_many', // Reusing bulk delete for single item
+                  table: currentTable,
+                  ids: [record[idColumn]]
+                });
+                toast('Conversación borrada.', { variant: 'danger' });
+                setHidden(recordCard, true); // Close detail view
+                await loadTable(); // Refresh table
+              } catch (err) {
+                toast(err.message || 'Error al borrar', { variant: 'danger' });
+              }
+            }
+          });
+        };
+        wrap.appendChild(delBtn);
+
+        // Botón Chat
+        const btn = document.createElement('a');
+        btn.className = 'btn'; // Use primary button style
+        btn.style.textDecoration = 'none';
+        btn.style.display = 'inline-flex';
+        btn.style.alignItems = 'center';
+        btn.style.gap = '8px';
+        btn.textContent = '💬 Abrir Chat';
+        btn.href = 'chat.php?conversation_id=' + record[idColumn];
+        btn.target = '_blank'; // Open in new tab? Or same? _blank is safer for admin context
+
+        wrap.appendChild(btn);
+        recordForm.appendChild(wrap);
+      }
+
       recordForm.appendChild(actions);
     }
 
@@ -549,7 +661,7 @@ $adminUser = htmlspecialchars(get_admin_user() ?? 'admin', ENT_QUOTES | ENT_SUBS
     const confirmCancel = document.getElementById('confirmCancel');
     const confirmOk = document.getElementById('confirmOk');
 
-    function openConfirm({title, body, okText = 'Aceptar', onOk}) {
+    function openConfirm({ title, body, okText = 'Aceptar', onOk }) {
       confirmTitle.textContent = title;
       confirmBody.textContent = body;
       confirmOk.textContent = okText;
@@ -630,4 +742,5 @@ $adminUser = htmlspecialchars(get_admin_user() ?? 'admin', ENT_QUOTES | ENT_SUBS
 
   </script>
 </body>
+
 </html>

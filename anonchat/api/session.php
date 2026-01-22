@@ -1,4 +1,7 @@
 <?php
+declare(strict_types=1);
+define('DEBUG', true); // true = entorno desarrollo, false = producción
+
 /**
  * session.php - Funciones compartidas para manejo de sesiones
  * 
@@ -13,16 +16,21 @@
  * - Establecimiento de variables de sesión comunes
  */
 
-declare(strict_types=1);
 
 /**
  * Verifica si la conexión es HTTPS
  * 
  * @return bool true si es HTTPS, false en caso contrario
  */
-function is_https(): bool {
+function is_https(bool $debug = true): bool
+{
+    // Si estamos en modo debug, siempre devolvemos false (no forzar HTTPS)
+    if ($debug) {
+        return true;
+    }
+
     return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
+        || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443);
 }
 
 /**
@@ -31,7 +39,8 @@ function is_https(): bool {
  * 
  * @return void
  */
-function start_secure_session(): void {
+function start_secure_session(): void
+{
     // Evitar iniciar sesión si ya está activa (previene warnings/errores)
     if (session_status() === PHP_SESSION_ACTIVE) {
         return;
@@ -41,9 +50,9 @@ function start_secure_session(): void {
 
     session_set_cookie_params([
         'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $secure,  
+        'path' => '/',
+        'domain' => '',
+        'secure' => $secure,
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
@@ -59,7 +68,8 @@ function start_secure_session(): void {
  * 
  * @return bool true si es admin autenticado, false en caso contrario
  */
-function is_admin_authenticated(): bool {
+function is_admin_authenticated(): bool
+{
     return !empty($_SESSION['admin_auth']) && !empty($_SESSION['admin_id']);
 }
 
@@ -68,9 +78,10 @@ function is_admin_authenticated(): bool {
  * 
  * @return bool true si es usuario autenticado, false en caso contrario
  */
-function is_user_authenticated(): bool {
-    return !empty($_SESSION['authenticated']) 
-        && !empty($_SESSION['conversation_id']) 
+function is_user_authenticated(): bool
+{
+    return !empty($_SESSION['authenticated'])
+        && !empty($_SESSION['conversation_id'])
         && !empty($_SESSION['conversation_code']);
 }
 
@@ -79,8 +90,9 @@ function is_user_authenticated(): bool {
  * 
  * @return int|null ID del admin o null si no está autenticado
  */
-function get_admin_id(): ?int {
-    return is_admin_authenticated() ? (int)$_SESSION['admin_id'] : null;
+function get_admin_id(): ?int
+{
+    return is_admin_authenticated() ? (int) $_SESSION['admin_id'] : null;
 }
 
 /**
@@ -88,8 +100,9 @@ function get_admin_id(): ?int {
  * 
  * @return string|null Nombre del admin o null si no está autenticado
  */
-function get_admin_user(): ?string {
-    return is_admin_authenticated() ? (string)($_SESSION['admin_user'] ?? null) : null;
+function get_admin_user(): ?string
+{
+    return is_admin_authenticated() ? (string) ($_SESSION['admin_user'] ?? null) : null;
 }
 
 /**
@@ -97,8 +110,9 @@ function get_admin_user(): ?string {
  * 
  * @return int|null ID de conversación o null si no está autenticado
  */
-function get_conversation_id(): ?int {
-    return is_user_authenticated() ? (int)$_SESSION['conversation_id'] : null;
+function get_conversation_id(): ?int
+{
+    return is_user_authenticated() ? (int) $_SESSION['conversation_id'] : null;
 }
 
 /**
@@ -106,8 +120,9 @@ function get_conversation_id(): ?int {
  * 
  * @return string|null Código de conversación o null si no está autenticado
  */
-function get_conversation_code(): ?string {
-    return is_user_authenticated() ? (string)$_SESSION['conversation_code'] : null;
+function get_conversation_code(): ?string
+{
+    return is_user_authenticated() ? (string) $_SESSION['conversation_code'] : null;
 }
 
 /**
@@ -116,13 +131,14 @@ function get_conversation_code(): ?string {
  * @param string $context Contexto del token (ej: 'admin', 'admin_panel', 'chat', 'default')
  * @return string Token CSRF
  */
-function get_csrf_token(string $context = 'default'): string {
+function get_csrf_token(string $context = 'default'): string
+{
     $key = 'csrf_' . $context;
-    
+
     if (empty($_SESSION[$key])) {
         $_SESSION[$key] = bin2hex(random_bytes(32));
     }
-    
+
     return $_SESSION[$key];
 }
 
@@ -133,13 +149,14 @@ function get_csrf_token(string $context = 'default'): string {
  * @param string $context Contexto del token (ej: 'admin', 'admin_panel', 'chat', 'default')
  * @return bool true si el token es válido, false en caso contrario
  */
-function validate_csrf_token(string $token, string $context = 'default'): bool {
+function validate_csrf_token(string $token, string $context = 'default'): bool
+{
     $key = 'csrf_' . $context;
-    
+
     if (empty($_SESSION[$key]) || $token === '') {
         return false;
     }
-    
+
     return hash_equals($_SESSION[$key], $token);
 }
 
@@ -151,11 +168,12 @@ function validate_csrf_token(string $token, string $context = 'default'): bool {
  * @param bool $regenerateId Si true, regenera el ID de sesión (anti session fixation)
  * @return void
  */
-function set_admin_session(int $adminId, string $adminUser, bool $regenerateId = true): void {
+function set_admin_session(int $adminId, string $adminUser, bool $regenerateId = true): void
+{
     if ($regenerateId) {
         session_regenerate_id(true);
     }
-    
+
     $_SESSION['admin_auth'] = true;
     $_SESSION['admin_id'] = $adminId;
     $_SESSION['admin_user'] = $adminUser;
@@ -169,7 +187,8 @@ function set_admin_session(int $adminId, string $adminUser, bool $regenerateId =
  * @param string $conversationCode Código de la conversación
  * @return void
  */
-function set_user_session(int $conversationId, string $conversationCode): void {
+function set_user_session(int $conversationId, string $conversationCode): void
+{
     $_SESSION['authenticated'] = true;
     $_SESSION['conversation_id'] = $conversationId;
     $_SESSION['conversation_code'] = $conversationCode;
@@ -180,9 +199,10 @@ function set_user_session(int $conversationId, string $conversationCode): void {
  * 
  * @return void
  */
-function destroy_session(): void {
+function destroy_session(): void
+{
     $_SESSION = [];
-    
+
     if (ini_get("session.use_cookies")) {
         $params = session_get_cookie_params();
         setcookie(
@@ -195,6 +215,6 @@ function destroy_session(): void {
             $params["httponly"]
         );
     }
-    
+
     session_destroy();
 }

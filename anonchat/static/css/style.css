@@ -8,7 +8,7 @@
     --accent-2: #ea4335;
     --border: #dadce0;
     --success: #34a853;
-    --shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 2px 6px 2px rgba(60,64,67,0.15);
+    --shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 2px 6px 2px rgba(60, 64, 67, 0.15);
     --radius: 8px;
     --radius-sm: 4px;
     --transition: 120ms ease;
@@ -16,7 +16,9 @@
     --purple-light: #f3e8ff;
 }
 
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+}
 
 body {
     margin: 0;
@@ -91,7 +93,8 @@ p.lead {
     margin-bottom: 8px;
 }
 
-button.primary, button.ghost {
+button.primary,
+button.ghost {
     width: 100%;
     padding: 14px 16px;
     border-radius: var(--radius-sm);
@@ -102,7 +105,7 @@ button.primary, button.ghost {
     transition: background-color var(--transition), box-shadow var(--transition);
     color: white;
     background-color: var(--accent);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -111,7 +114,7 @@ button.primary, button.ghost {
 
 button.primary:hover {
     background-color: #1967d2;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 button.ghost {
@@ -137,7 +140,9 @@ form {
     transition: opacity var(--transition), transform var(--transition);
 }
 
-form.hidden { display: none; }
+form.hidden {
+    display: none;
+}
 
 label {
     color: var(--text);
@@ -147,7 +152,13 @@ label {
     gap: 8px;
 }
 
-textarea, input[type="password"], input[type="text"] {
+textarea {
+    resize: none;
+}
+
+textarea,
+input[type="password"],
+input[type="text"] {
     width: 100%;
     padding: 14px 16px;
     border-radius: var(--radius-sm);
@@ -160,9 +171,10 @@ textarea, input[type="password"], input[type="text"] {
     font-family: inherit;
 }
 
-textarea:focus, input:focus {
+textarea:focus,
+input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
     outline: none;
 }
 
@@ -182,7 +194,8 @@ textarea:focus, input:focus {
     border-bottom: 1px solid var(--border);
 }
 
-.result, .card {
+.result,
+.card {
     padding: 20px;
     border-radius: var(--radius);
     border: 1px solid #d2e3fc;
@@ -191,7 +204,9 @@ textarea:focus, input:focus {
     margin-top: 8px;
 }
 
-.result.hidden { display: none; }
+.result.hidden {
+    display: none;
+}
 
 .code-box {
     font-family: 'Roboto Mono', 'Courier New', monospace;
@@ -270,10 +285,21 @@ footer {
     margin-right: 6px;
 }
 
-.dot-blue { background-color: #1a73e8; }
-.dot-green { background-color: #34a853; }
-.dot-red { background-color: #ea4335; }
-.dot-yellow { background-color: #fbbc04; }
+.dot-blue {
+    background-color: #1a73e8;
+}
+
+.dot-green {
+    background-color: #34a853;
+}
+
+.dot-red {
+    background-color: #ea4335;
+}
+
+.dot-yellow {
+    background-color: #fbbc04;
+}
 
 /* Estado de carga */
 .loading {
@@ -287,19 +313,37 @@ footer {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 @media (max-width: 640px) {
-    .panel { padding: 20px; }
-    .actions { grid-template-columns: 1fr; }
-    form { padding: 20px; }
-    textarea, input { padding: 12px 14px; }
+    .panel {
+        padding: 20px;
+    }
+
+    .actions {
+        grid-template-columns: 1fr;
+    }
+
+    form {
+        padding: 20px;
+    }
+
+    textarea,
+    input {
+        padding: 12px 14px;
+    }
 }
 
 
-a.alert,a.primary{
+a.alert,
+a.primary {
     text-decoration: none;
     padding: 14px 16px;
     border-radius: var(--radius-sm);
@@ -310,13 +354,14 @@ a.alert,a.primary{
     transition: background-color var(--transition), box-shadow var(--transition);
     color: white;
     background-color: var(--accent);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
 }
-a.alert{
+
+a.alert {
     background-color: var(--accent-2);
 
 }
